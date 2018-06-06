@@ -167,7 +167,9 @@ of this document as supporting terms to help the reader.
    
   `0x0013 0x0064 0x0014` or maybe `0000 0000 0000 0000 0000 0000 0001 0011 0000 0000 0000 0000 0000 0000 0110 0100 0000 0000 0000 0000 0000 0000 0001 0100`
   
-  Yes, it's just a series of numbers/bits which the CPU knows how to read. This representation is known as [machine code](https://en.wikipedia.org/wiki/Machine_code).
+  Yes, it's just a series of numbers/bits which the CPU knows how to read. This representation is known as [machine code (or native code)](https://en.wikipedia.org/wiki/Machine_code) when assembled for execution on physical hardware. In the case of code assembled for execution on virtual machines (AMX for example), the representation is known as pseudocode (and bytecode if the opcodes are 1-byte long).
+  
+  *See also:* [bytecode](https://en.wikipedia.org/wiki/Bytecode), [pseudocode (p-code)](https://en.wikipedia.org/wiki/Pseudocode), [p-code machine](https://en.wikipedia.org/wiki/P-code_machine)  
  
 * ## <a name="concept-spc-vna"></a> Stored program concept and von Neumann architecture
 
@@ -443,22 +445,21 @@ This reduces the number of explicit operands needed which in turn decreases the 
 | 46     | PROC       | value     | STK = STK - cell size, [STK] = FRM, FRM = STK |
 | 47     | RET        |           | FRM = [STK], STK = STK + cell size, CIP = [STK], STK = STK + cell size |
 | 48     | RETN       |           | FRM = [STK], STK = STK + cell size, CIP = [STK], STK = STK + [STK] + cell size |
-| 49     | CALL       | offset    | STK = STK − cell size, [STK] = CIP, CIP = CIP + oﬀset |
+| 49     | CALL       | offset    | STK = STK − cell size, [STK] = CIP, CIP = CIP + offset |
 | 50     | CALL.pri   |           | STK = STK − cell size, [STK] = CIP, CIP = PRI |
-| 51     | JUMP       | oﬀset     | CIP = CIP + oﬀset                            |
-| 52     | JREL       | oﬀset     | obsolete                                     |
-| 53     | JZER       | oﬀset     | if PRI == 0 then CIP = CIP + oﬀset           |
-| 54     | JNZ        | oﬀset     | if PRI != 0 then CIP = CIP + oﬀset           |
-| 55     | JEQ        | oﬀset     | if PRI == ALT then CIP = CIP + oﬀset         |
-| 56     | JNEQ       | oﬀset     | if PRI != ALT then CIP = CIP + oﬀset         |
-| 57     | JLESS      | oﬀset     | if PRI < ALT (unsigned) then CIP = CIP + oﬀset | 
-| 58     | JLEQ       | oﬀset     | if PRI <= ALT (unsigned)  then CIP = CIP + oﬀset |
-| 59     | JGRTR      | oﬀset     | if PRI > ALT (unsigned) then CIP = CIP + oﬀset |
-| 60     | JGEQ       | oﬀset     | if PRI >= ALT (unsigned) then CIP = CIP + oﬀset |
-| 61     | JSLESS     | oﬀset     | if PRI < ALT (signed) then CIP = CIP + oﬀset  |
-| 62     | JSLEQ      | oﬀset     | if PRI <= ALT (signed) then CIP = CIP + oﬀset | 
-| 63     | JSGRTR     | oﬀset     | if PRI > ALT (signed) then CIP = CIP + oﬀset |
-| 64     | JSGEQ      | oﬀset     | if PRI >= ALT (signed) then CIP = CIP + oﬀset |
+| 51     | JUMP       | offset    | CIP = CIP + offset                            |
+| 53     | JZER       | offset    | if PRI == 0 then CIP = CIP + offset           |
+| 54     | JNZ        | offset    | if PRI != 0 then CIP = CIP + offset           |
+| 55     | JEQ        | offset    | if PRI == ALT then CIP = CIP + offset         |
+| 56     | JNEQ       | offset    | if PRI != ALT then CIP = CIP + offset         |
+| 57     | JLESS      | offset    | if PRI < ALT (unsigned) then CIP = CIP + offset | 
+| 58     | JLEQ       | offset    | if PRI <= ALT (unsigned)  then CIP = CIP + offset |
+| 59     | JGRTR      | offset    | if PRI > ALT (unsigned) then CIP = CIP + offset |
+| 60     | JGEQ       | offset    | if PRI >= ALT (unsigned) then CIP = CIP + offset |
+| 61     | JSLESS     | offset    | if PRI < ALT (signed) then CIP = CIP + offset  |
+| 62     | JSLEQ      | offset    | if PRI <= ALT (signed) then CIP = CIP + offset | 
+| 63     | JSGRTR     | offset    | if PRI > ALT (signed) then CIP = CIP + offset |
+| 64     | JSGEQ      | offset    | if PRI >= ALT (signed) then CIP = CIP + offset |
 | 65     | SHL        |           | PRI = PRI << ALT                             |
 | 66     | SHR        |           | PRI = PRI >> ALT (without sign extension)    |
 | 67     | SSHR       |           | PRI = PRI >> ALT (with sign extension)       |
@@ -519,7 +520,7 @@ This reduces the number of explicit operands needed which in turn decreases the 
 | 122    | SYSREQ.pri |           | call system service, service number in PRI   |
 | 123    | SYSREQ.C   | address   | call system service                          |
 | 128    | JUMP.pri   |           | CIP = PRI
-| 129    | SWITCH     | offset    | Compare PRI to the values in the case table (whose address is passed as an oﬀset from CIP) and jump to the associated the address in the matching record. |
+| 129    | SWITCH     | offset    | Compare PRI to the values in the case table (whose address is passed as an offset from CIP) and jump to the associated the address in the matching record. |
 | 130    | CASETBL    | ...       | A variable number of case records follows this opcode, where each record takes two cells. |
 | 131    | SWAP.pri   |           | [STK] = PRI and PRI = [STK]                  |
 | 132    | SWAP.alt   |           | [STK] = ALT and ALT = [STK]                  |
@@ -968,7 +969,7 @@ The series of steps taken to make a function call in detail are:
 9. store the return value in the primary register
 10. pop the frame address of the caller and set FRM register (without altering the return value in the primary register)
 11. pop the return address and set CIP register (without altering the return value in the primary register)
-12. remove arguments off the stack (without altering the return value in the primary register)
+12. remove arguments from the stack (without altering the return value in the primary register)
 
 Steps 1 and 2 have to be done manually. Note that the arguments are pushed in reverse order, i.e. the last argument is pushed first.
 Steps 3 and 4 are both done together by the `CALL` instruction (and its `CALL.pri` variant).
@@ -1214,10 +1215,31 @@ address of [0] | address of [1] | address of [2] | address of [3]
 
 The indirection table consists of 4 offsets pointing to their corresponding 3-element sub-array. 
 These offsets are relative to the address of the cell from which they are read, i.e. to obtain
-the address of [2][3], the value stored at [2] must be added to the address of [2].
+the address of sub-array [2], the address of element [2] in the indirection table must be added to the value it stores.
+
+```pawn
+static const arr[][] = { {1, 2, 3}, {1, 2}, {4, 5, 6, 7} };
+```
+
+With the assumption that cells are of 4 bytes, the above array will be stored in its binary form as:
+
+```
+12 20 24 1 2 3 1 2 4 5 6 7
+```
+
+indirection table | sub-array [0] | sub-array [1] | sub-array[2]
+----------------- | ------------- | ------------- | ------------
+12 20 24          | 1 2 3         | 1 2           | 4 5 6 7
+
+The sub-array [0] starts 12 bytes away (the first `1`) from the beginning of the indirection table. The address of the sub-array [0] would
+be the address of the first element in the indirection table plus the value stored at that address. The sub-array [1] starts 20 bytes away
+from the second element of the indirection table. The address of the sub-array [1] would be the address of the second element of the indirection table plus the value stored at that address.
+
 
 ```pawn
 new arr[5][5];
+
+// access arr[2][4]
 
 #emit CONST.alt arr // load the address of the indirection table
 #emit CONST.pri 2 // set the sub-array index to access (major dimension index)
@@ -1240,8 +1262,11 @@ new arr[5][5];
 
 Every N-dimensional (N != 1) contains an indirection table with offsets pointing to the (N - 1)-dimensional sub-arrays. To access an 
 element, the indirection tables must be recursively traversed until a one-dimensional array is obtained
+
 ```pawn
 new arr[5][5][5];
+
+// access arr[3][2][4]
 
 #emit CONST.pri arr
 
