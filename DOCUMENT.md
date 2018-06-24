@@ -8,8 +8,7 @@ AMX file version: > 7
 
 This document is an *unofficial* documentation of the assembly of the Abstract Machine eXecutor. 
 The contents of this document may not be accurate and are subject to changes. 
-Not all the terms defined in the [Terminology section](#terminology) are defined in the official manual but have been introduced for the purpose
-of this document as supporting terms to help the reader.
+Not all the terms defined in the [Terminology section](#terminology) are defined in the official manual but have been introduced for the purpose of this document as supporting terms to help the reader.
 
 # <a name="index"></a> Index
 * [Prerequisites](#prerequisites)
@@ -26,6 +25,7 @@ of this document as supporting terms to help the reader.
   * [Stack & Heap](#concept-stack-heap)
   * [Instructions](#concept-instructions)
   * [Stored program concept and von Neumann architecture](#concept-spc-vna)
+  * [Header, Data Segment, Code Segment](#concept-hdc)
   * [Registers](#concept-registers)
 * [File and memory layout](#file-memory-layout)
 * [Instruction Set](#instruction-set)
@@ -167,9 +167,9 @@ of this document as supporting terms to help the reader.
    
   `0x0013 0x0064 0x0014` or maybe `0000 0000 0000 0000 0000 0000 0001 0011 0000 0000 0000 0000 0000 0000 0110 0100 0000 0000 0000 0000 0000 0000 0001 0100`
   
-  Yes, it's just a series of numbers/bits which the CPU knows how to read. This representation is known as [machine code (or native code)](https://en.wikipedia.org/wiki/Machine_code) when assembled for execution on physical hardware. In the case of code assembled for execution on virtual machines (AMX for example), the representation is known as pseudocode (and bytecode if the opcodes are 1-byte long).
+  Yes, it's just a series of numbers/bits which the CPU knows how to read. This representation is known as [machine code (or native code)](https://en.wikipedia.org/wiki/Machine_code) when assembled for execution on physical hardware. In the case of code assembled for execution on hypothetical CPUs (like AMX), the representation is known as p-code.
   
-  *See also:* [bytecode](https://en.wikipedia.org/wiki/Bytecode), [pseudocode (p-code)](https://en.wikipedia.org/wiki/Pseudocode), [p-code machine](https://en.wikipedia.org/wiki/P-code_machine)  
+  *See also:* [bytecode](https://en.wikipedia.org/wiki/Bytecode), [p-code machine](https://en.wikipedia.org/wiki/P-code_machine)  
  
 * ## <a name="concept-spc-vna"></a> Stored program concept and von Neumann architecture
 
@@ -179,7 +179,41 @@ of this document as supporting terms to help the reader.
   The AMX uses a common memory to store both the code and data. This would mean that all your code is in the same memory as your data.
   This also implies that every instruction in memory has an address just like any data.
 
-* ## <a name="concept-registers"></a>Registers
+* ## <a name="concept-hdc"></a> Header, Data Segment, Code Segment
+
+  The executable binary and the program's in-memory structure are separated into logically different regions depending on what they contain. A typical binary executable consits of at least a header, a code segment and a data segment. The header provides information about the program itself such as [program entry point](https://en.wikipedia.org/wiki/Entry_point).
+  
+  ```
+  HEADER
+  -------
+   CODE
+  -------
+   DATA
+  ```
+  
+  The code segment stores the code in its binary form (machine code/p-code) while the data segment stores global variables, static local variables, etc.
+  
+  The program's in-memory structure is slightly different. In addition to the code and data segments, it contains a region for the program stack and the program heap.
+ 
+  ```
+  HEADER
+  -------
+   CODE
+  -------
+   DATA
+  -------
+   HEAP
+    |
+   STACK
+  ```
+  
+  AMX binaries are organized into three sections: prefix, code and data (in order). The prefix section contains information about the AMX binary such as offsets to the start of the code and data section in the binary. The code section stores the p-code and the data segment stores global variables and static local variables.
+  
+  The heap and stacks are created when the AMX binary is loaded into memory using the information present in the prefix section.
+  
+  *See also*: [data segment](https://en.wikipedia.org/wiki/Data_segment), [code segment](https://en.wikipedia.org/wiki/Code_segment), [ELF format](https://en.wikipedia.org/wiki/Executable_and_Linkable_Format)
+  
+* ## <a name="concept-registers"></a> Registers
   It is important to know that your processor and memory are at different places.
   
   ```
@@ -544,7 +578,7 @@ main()
 }
 ```
 
-When a local variable (but not arrays) are used as an operand, the Pawn compiler substitutes the correct offset from the start of the function frame. *(explained later)*
+When a local variable is used as an operand, the Pawn compiler substitutes the correct offset from the start of the function frame. *(explained later)*
 
 ```pawn
 main()
