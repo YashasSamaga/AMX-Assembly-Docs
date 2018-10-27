@@ -764,7 +764,7 @@ main ()
      #emit STOR.S.pri cod
    
      #emit LCTRL 1 // store the value of the DAT segment register in the primary register
-     #emit STOR.S.pri cod
+     #emit STOR.S.pri dat
    
      printf("%d %d", cod, dat);
 }
