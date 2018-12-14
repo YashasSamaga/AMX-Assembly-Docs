@@ -1,10 +1,10 @@
 # <a name="main"></a> AMX Assembly
 
-3rd June 2018
+13th December 2018
 
-AMX version: 3.x
+AMX Version: 3.0
 
-AMX file version: > 7
+AMX File Version: 8
 
 This document is an *unofficial* documentation of the assembly of the Abstract Machine eXecutor. 
 The contents of this document may not be accurate and are subject to changes. 
@@ -56,13 +56,13 @@ Not all the terms defined in the [Terminology section](#terminology) are defined
 - [Stack (as an abstract data type)](https://en.wikipedia.org/wiki/Stack_(abstract_data_type))
 
 # <a name="terminology"></a> Terminology
- <a name="term-amx"></a>**Abstract Machine eXecutor (AMX)**: AMX is an [abstract machine](https://en.wikipedia.org/wiki/Abstract_machine) (or a [virtual machine](https://en.wikipedia.org/wiki/Virtual_machine)). 
+ <a name="term-amx"></a>**Abstract Machine eXecutor (AMX)**: AMX is the [abstract machine](https://en.wikipedia.org/wiki/Abstract_machine) (or a [virtual machine](https://en.wikipedia.org/wiki/Virtual_machine)) which is of interest to us.
  
  <a name="term-amx-assembly"></a>**AMX Assembly**: The [assembly language](https://en.wikipedia.org/wiki/Assembly_language) for AMX.
  
- <a name="term-amx-binary"></a>**AMX Binary**: AMX [binary](https://en.wikipedia.org/wiki/Executable) is the executable file (usually have the `.amx` extension) that is produced after compiling. *AMX program can refer to AMX binary in some contexts.*
+ <a name="term-amx-binary"></a>**AMX Binary**: AMX [binary](https://en.wikipedia.org/wiki/Executable) is the executable file (usually have the `.amx` extension) that is produced after compiling. *The term AMX program may refer to AMX binary in some contexts.*
  
- <a name="term-amx-instance"></a>**AMX Instance**: Every AMX binary [loaded](https://en.wikipedia.org/wiki/Loader_(computing)) exists independently. The loaded program is known as AMX Instance. *AMX program can refer to AMX instance in some contexts.*
+ <a name="term-amx-instance"></a>**AMX Instance**: Every AMX binary [loaded](https://en.wikipedia.org/wiki/Loader_(computing)) exists independently. The loaded program is known as AMX Instance. *The term AMX program may refer to AMX instance in some contexts.*
  
  <a name="term-host-program"></a>**Host Program**: The program which embeds the AMX is known as the host program.
  In the case of [San Andreas Multiplayer (SA-MP)](http://sa-mp.com/), the SA-MP server is the host program.
@@ -80,35 +80,37 @@ Not all the terms defined in the [Terminology section](#terminology) are defined
   new a = 5, b = 'A';
   ```
 
-  The above code creates two separate cells each identified by `a` and `b`. The cell `a` will contain the value 5 and the cell `b` will contain the value 65: the ASCII equivalent of the character 'A'.
+  The above code creates two separate cells identified by `a` and `b`. The cell `a` will contain the value 5 and the cell `b` will contain the value 65: the ASCII equivalent of the character 'A'.
   
   To compensate for the lack of data types, Pawn provides the ability to tag cells. 
-  These tags are mere compile time helpers and are not directly<sup>[[1]](#note-1)</sup> present in the AMX binary.
+  These tags are mere compile time helpers and are not directly<sup>[[1]](#bc-cc-note-1)</sup> present in the AMX binary.
   
   ```pawn
   new Float:x = 5.0, Float:y = 10.0, Float:z;
   z = x + y;
   ```
   
-  The above code creates two tagged cells identified by `x`, `y` and `z`. They are initialized with the value `5.0`, `10.0` and `0.0` (default initialization to binary zero) respectively in the correct [binary representation of those floating point numbers](https://en.wikipedia.org/wiki/Floating-point_arithmetic#Internal_representation).
-  The compiler remembers the tags of the variables it encounters and ensures that the correct code is generated wherever they are used: the compiler emits the correct code to add two floating point numbers `x` and `y` as it processes the second line.
-  Remember that integer addition and floating point addition are carried out differently. The compiler uses the tag associated with the cells to figure out what kind of addition operation has to be carried out.
+  The above code creates three tagged cells identified by `x`, `y` and `z`. They are initialized with the value `5.0`, `10.0` and `0.0` (default initialization to binary zero) respectively in the correct [binary representation of those floating point numbers](https://en.wikipedia.org/wiki/Floating-point_arithmetic#Internal_representation).
+  The compiler remembers the tags of the variables it encounters and ensures that the correct code <sup>[[2]](#bc-cc-note-2)</sup> is generated wherever they are used: in the above case, the compiler emits the correct code to add two floating point numbers `x` and `y` as it processes the second line.
+  Remember that integer addition and floating point addition are carried out differently. The compiler uses the tag associated with the cells to figure out what kind of addition operation has to be carried out on the operands.
   
   The information about the tag of the variables is lost after compilation. The produced AMX binary will contain instructions to carry out floating point addition on the data stored in `x` and `y` and store the result in `z`. 
-  During execution, the floating point addition takes place without caring whether the tag of `x` and `y` in the script were originally `Float`. It is the duty of the compiler to place the correct code (`floatadd` in this case) in the binary based on the information it has while compiling.
+  During execution, the floating point addition takes place without caring whether the tag of `x` and `y` in the script were originally `Float`.
 
-  <a name="note-1"></a> [[1]](#note-1) *The Pawn language provides the `tagof` operator which returns the compile-time id associated with a tag that can be stored. 
+  <a name="bc-cc-note-1"></a> [[1]](#bc-cc-note-1) *The Pawn language provides the `tagof` operator which returns the compile-time id associated with a tag that can be stored. 
   The compiler also creates a list of publicly accessible tags in the tag table in the AMX binary.*
 
+  <a name="bc-cc-note-2"></a> [[2]](#bc-cc-note-2) *The Pawn language allows operator overloading based on tags. The compiler is aware of all the operator overloads that are present and invokes the correct overload based on the tag(s) of the operand(s). If no overload exists for the given operand(s), the compiler defaults to the operators of untagged cells.*
+
 * ## <a name="concept-memory-addresses"></a> Memory Addresses
-  The AMX follows a flat byte-addressable memory model. This would imply that the memory in AMX can be thought of as a linear collection
+  The AMX follows a flat byte-addressable memory model, i.e. the AMX memory can be thought of as a linear collection
   ([flat memory](https://en.wikipedia.org/wiki/Flat_memory_model)) of bytes with each byte having a unique address ([byte addressable](https://en.wikipedia.org/wiki/Byte_addressing)).
   
   ```pawn
   new a[5];
   ```
   
-  The above code creates an array of five cells (default initialized to zero) identified by `a`. These cells are stored contiguously, i.e. they are stored one after another.
+  The above code creates an array of five cells identified by `a`. These cells are stored contiguously, i.e. they are stored one after another.
   Assuming the size of cells to be 4 bytes, if the address of the location where `a[0]` is stored is `1000`, the address of the location where `a[1]` is stored would be `1004`.
   
   ```
@@ -135,7 +137,7 @@ Not all the terms defined in the [Terminology section](#terminology) are defined
   The heap is responsible for:
   * providing memory for dynamic allocation
     * storing default arguments which are taken as reference/array
-    * storing constants and expressions which are not lvalue and are passed as a variable argument
+    * storing constants and expressions which are not [lvalue](https://en.wikipedia.org/wiki/Value_(computer_science)#lrvalue) and are passed as a variable argument
   
   ###
   
@@ -148,11 +150,11 @@ Not all the terms defined in the [Terminology section](#terminology) are defined
   }
   ```
   
-  In the above snippet, the variables `a`, `b`, `c` and the constant `1` are allocated space in the stack and the constant `25` is allocated space in the heap.
+  In the above snippet, the variables `a`, `b`, `c` and the constant `1` are allocated space in the stack and the constant `25` is allocated space in the heap. References and variable arguments are passed as addresses to the function. Since the literal `25` is a constant and does not have an address, a temporary cell is allocated in the heap to store the value `25` and the address of this cell is passed to the function.
   
 * ## <a name="concept-instructions"></a> Instructions
   
-  [Instructions](https://en.wikipedia.org/wiki/Instruction_set_architecture#Instructions) are the discrete units of execution. Most of the instructions carry out simple tasks such as basic arithmetic. The higher constructs such as loops, conditional statements, etc. can be reduced to a series of simple instructions. In fact, all code in its actual binary form is just a collection of instructions. 
+  [Instructions](https://en.wikipedia.org/wiki/Instruction_set_architecture#Instructions) are the discrete units of execution. Most of the instructions carry out simple tasks such as basic arithmetic. The higher constructs such as loops, conditional statements, etc. can be reduced to a series of simple instructions. 
   
   For example, the instructions expressed in assembly which pushes and pops a value to and from the call stack could be:
   
@@ -167,7 +169,7 @@ Not all the terms defined in the [Terminology section](#terminology) are defined
    
   `0x0013 0x0064 0x0014` or maybe `0000 0000 0000 0000 0000 0000 0001 0011 0000 0000 0000 0000 0000 0000 0110 0100 0000 0000 0000 0000 0000 0000 0001 0100`
   
-  Yes, it's just a series of numbers/bits which the CPU knows how to read. This representation is known as [machine code (or native code)](https://en.wikipedia.org/wiki/Machine_code) when assembled for execution on physical hardware. In the case of code assembled for execution on hypothetical CPUs (like AMX), the representation is known as p-code.
+  Yes, it's just a series of numbers/bits which the CPU knows how to interpret. This representation is known as [machine code (or native code)](https://en.wikipedia.org/wiki/Machine_code) when assembled for execution on physical hardware. In the case of code assembled for execution on hypothetical CPUs (like AMX), the representation is known as p-code.
   
   *See also:* [bytecode](https://en.wikipedia.org/wiki/Bytecode), [p-code machine](https://en.wikipedia.org/wiki/P-code_machine)  
  
@@ -193,7 +195,7 @@ Not all the terms defined in the [Terminology section](#terminology) are defined
   
   The code segment stores the code in its binary form (machine code/p-code) while the data segment stores global variables, static local variables, etc.
   
-  The program's in-memory structure is slightly different. In addition to the code and data segments, it contains a region for the program stack and the program heap.
+  The program's in-memory structure is usually different. In addition to the code and data segments, it generally contains a region for the program stack and the program heap.
  
   ```
   HEADER
@@ -209,7 +211,7 @@ Not all the terms defined in the [Terminology section](#terminology) are defined
   
   AMX binaries are organized into three sections: prefix, code and data (in order). The prefix section contains information about the AMX binary such as offsets to the start of the code and data section in the binary. The code section stores the p-code and the data segment stores global variables and static local variables.
   
-  The heap and stacks are created when the AMX binary is loaded into memory using the information present in the prefix section.
+  The heap and stack region is created when the AMX binary is loaded into memory using the information present in the prefix section.
   
   *See also*: [data segment](https://en.wikipedia.org/wiki/Data_segment), [code segment](https://en.wikipedia.org/wiki/Code_segment), [ELF format](https://en.wikipedia.org/wiki/Executable_and_Linkable_Format)
   
@@ -222,38 +224,42 @@ Not all the terms defined in the [Terminology section](#terminology) are defined
   |-------|        BUS       |------------------|
   ```
 
-  The memory can store data but CPU is the one that operates on the data. For every operation that happens in the CPU, the processor has to bring the operands from the memory and store them temporarily inside the CPU. These temporary memory locations are known as [registers](https://en.wikipedia.org/wiki/Processor_register). The registers can hold a very small amount of data (in the range of few bytes, ex: 2 bytes, 4 bytes, 8 bytes, etc).
+  The memory stores data and the CPU operates on the data. For every operation that happens, the processor has to bring the operands from the memory and store them temporarily inside the CPU. These temporary storage locations are known as [registers](https://en.wikipedia.org/wiki/Processor_register). These registers can hold a very small amount of data (in the range of few bytes, ex: 2 bytes, 4 bytes, 8 bytes, etc).
   
   Suppose the processor had to add two variables `x` and `y` and store the result in variable `z`, a typical processor would do the following:
   1. bring the value of `x` from the memory (i.e. read from `x`'s address) and store it in a register, say `R1`
   2. bring the value of `y` from the memory (i.e. read from `y`'s address) and store it in a register, say `R2`
   3. add the contents of `R1` and `R2` and store it in some register, say `R3`
-  4. store the contents of `R3` at in `z` (write to `z`'s address)
+  4. store the contents of `R3` in `z` (write to `z`'s address)
+
+  ###
 
   A processor consists of different [types of registers](https://en.wikipedia.org/wiki/Processor_register#Categories_of_registers) serving different purposes. Some registers are specialized for a specific task and some can be used for any purpose.
-  The registers used in the aforementioned example belongs to the class of general purpose registers, i.e. they can be used for anything.
+  The registers used in the aforementioned example belong to the class of general purpose registers, i.e. they can be used for anything.
   
   The AMX's register set consists of the following registers:
   * **Primary Register (PRI)**: general purpose register (frequently used as an [accumulator register](https://en.wikipedia.org/wiki/Accumulator_(computing)))
   * **Alternate Register (ALT)**: general purpose register (frequently used as an address register)
   * **Code Segment Register (COD)**: absolute address to the start of the code segment in memory
   * **Data Segment Register (DAT)**: absolute address to the start of the data segment in memory
-  * **Current Instruction Pointer (CIP)**: address (relative to the COD register) of the next instruction to be executed
+  * **Current Instruction Pointer (CIP)**: address (relative to the COD register) of the _next instruction_ to be executed
   * **Stack Top Register (STP)**: address (relative to the DAT register) to the top of the stack
   * **Stack Index Register (STK)**: address (relative to the DAT register) to the current location on the stack
   * **Frame Pointer Register (FRM)**: address (relative to the DAT register) of the start of the current function's frame in the stack (*explained later*)
   * **Heap Pointer (HEA)**: address (relative to the DAT register) to the top of the heap
   
+  ###
+  
   The addresses we deal with while writing assembly code are usually not absolute addresses; they are relative to one of the segment registers or the frame pointer register.
-  The addresses of global variables, literals, etc. are relative to DAT register and the addresses of the functions or instructions or labels are relative to the COD register.
+  The addresses of global variables, strings, etc. are relative to DAT register and the addresses of the functions or instructions or labels are relative to the COD register.
   This means that the absolute address of the variable is the relative address plus the value of the DAT register and similar is the case with code addresses except that you add the value contained in the COD register. 
   
   The addresses of local variables are relative to the frame pointer register. This is a bit complex and will be dealt with later.
   
-  *Henceforth, when we talk about code addresses and data addresses, it is implied that the addresses are relative to the COD register and the DAT register respectively.* 
+  *Henceforth, when we talk about code addresses and data addresses, unless explicitly stated, it is implied that the addresses are relative to the COD register and the DAT register respectively.* 
 
 # <a name="file-memory-layout"></a> File and memory layout
-There exists a format in which executable binaries are stored in files. All non-debug AMX binary files are organized as follows:
+All non-debug AMX binary files are organized as follows:
 
 ```
 START OF BINARY FILE
@@ -269,14 +275,13 @@ END OF BINARY FILE
  
  * **Prefix**: contains essential information about the program
  * **Code**: contains the code
- * **Data**: contains the data such as global variables (including arrays), literals
+ * **Data**: contains the data
  
  *Note: The prefix section may be padded to [align](https://en.wikipedia.org/wiki/Data_structure_alignment) the code and data sections based on the compiler options used.*
  
  *Note: The binary image of scripts compiled with debug enabled will contain the symbolic debug information appended at the end. Refer to the Pawn Implementer Guide for more details.*
  
- The in-memory structure of the program is slightly different. 
- The AMX builds the stack and the heap from the information contained in the prefix.
+ The in-memory structure contains the stack and the heap which is setup using the information contained in the prefix.
  
 ```
 LOW ADDRESS (0)
@@ -314,15 +319,15 @@ the `#pragma dynamic [estimated number of cells]` directive.
 | ------------- | ------------- | ----------------------------------------------------------------------------------------- |
 | size          | 4             | size of the memory image; excluding the stack and heap                                    |
 | magic         | 2             | indicates the format and cell size                                                        |
-| file version  | 1             | the format version; (8 for SA-MP)                                                         |
+| file version  | 1             | the format version                                                                        |
 | amx version   | 1             | required minimum version of the abstract machine                                          |
 | flags         | 2             |                                                                                           |
 | defsize       | 2             | size of a record in the tables                                                            |
 | cod           | 4             | offset to the start of the code section                                                   |
 | dat           | 4             | offset to the start of the data section                                                   |
-| hea           | 4             | initial value of the heap (marks the end of the data section)                             |
-| stp           | 4             | stack top value (indicates the total memory requirement)                                  |
-| cip           | 4             | address of the `main` function; `-1` if it does not exist                                 |
+| hea           | 4             | initial value of the HEA register (marks the end of the data section)                     |
+| stp           | 4             | initial value of the STP register (indicates the total memory requirement)                |
+| cip           | 4             | initial value of the CIP register (address of the `main` function; `-1` if it doesn't exist) |
 | publics       | 4             | offset to the start of the public function table                                          |
 | natives       | 4             | offset to the start of the native function table                                          |
 | libraries     | 4             | offset to the start of the libraries table                                                |
@@ -340,11 +345,10 @@ the `#pragma dynamic [estimated number of cells]` directive.
 
 *Note: For detailed information about how information is encoded in the magic, version and flags fields; refer to the Pawn Implementer Guide.*
 
-*Note: All the multi-byte fields in the prefix are stored in the [little endian format](https://en.wikipedia.org/wiki/Endianness) irrespective of the platform on
-which the AMX binary was produced.*
+*Note: All the multi-byte fields in the prefix are stored in the [little endian format](https://en.wikipedia.org/wiki/Endianness) irrespective of the platform on which the AMX binary was produced or will be executed on.*
 
 It can be seen that the prefix consists of a fixed part that is followed by a series of tables. 
-Every record in the tables except the name table consists of two fields as shown in the following structure:
+Every record in the tables except the name table consists of two fields as shown below:
 
 | Field                 | Size          | Description                                                   |
 | --------------------- | ------------- | ------------------------------------------------------------- |
@@ -353,13 +357,13 @@ Every record in the tables except the name table consists of two fields as shown
 
 The size of each record in the tables (except the name table) is given by the `defsize` field in the prefix: `defsize` = 4 + cell size.
 
-An index number starting from zero is assigned to every record in the tables. The first record of each table is assigned the index zero
+An index number is assigned to every record in the tables. The first record of each table is assigned the index zero
 and subsequent records' index number is one plus the index of the record preceding it.
 
 **Name Table**:
-The records in the tables (other than the name table) contain a pointer to a string. 
+The records in the tables (other than the name table itself) contain a pointer to a string. 
 These strings are stored in the name table as null-terminated C strings.
-The size of records in this table is the size of the string it holds.
+The size of the records in this table is the size of the string it holds.
 
 **Public Function Table**:
 A record is created for every public function that is defined in the script.
@@ -370,28 +374,23 @@ The index of a record in this table is the index of the corresponding public fun
 
 **Native Function Table**:
 A record is created for every native function that is called in the script. 
-The first field of the record is set to zero by the compiler in the binary file but the host program initializes this field to the correct value when the binary is loaded.
-The second field contains an offset to the name of the native function in the name table.
+The first field of the record is set to zero by the compiler in the binary file but the host program initializes this field to the correct value when the binary is loaded. The second field contains an offset to the name of the native function.
 
 The index of a record in this table is the index of the corresponding native function.
 
 **Library Table**:
-Pawn language provides a pragma directive `#pragma directive [library name]` to inform the compiler that some of the native functions called require an extension module.
-A record is created in the library table for libraries whose native functions have been called in the script.
-The purpose is to inform the host program that the AMX binary depends on an extension module.
+Pawn language provides a pragma directive `#pragma directive [library name]` to inform the compiler that some of the native functions called require an extension module. A record is created in the library table for libraries whose native functions have been called in the script. The purpose is to inform the host program that the AMX binary depends on an extension module.
 
-The first field of the records are used internally and are set to zero in the AMX binary.
-The other field contains an offset from the start of prefix to the name of the library in the name table.
+The first field of the records is used internally and is set to zero in the AMX binary. The other field contains an offset from the start of prefix to the name of the library in the name table.
 
 **Public Variable Table**:
-A record is created for every public variable that is declared in the script.
-The record contains the address of the public variable and the offset to the name of the public variable.
+A record is created for every public variable that is declared in the script. The record contains the address of the public variable and the offset to the name of the public variable.
 
 The index of a record in this table is the index of the public variable.
 
 **Tag Table**:
-The tags which are used with the `sleep` or the `exit` statement and the tags which are used with the `tagof` operator are considered useful.
-A record is created for the tags considered useful.
+The tags which are used with the `sleep` or the `exit` statement and the tags which are used with the `tagof` operator are considered useful to be exported. A record is created for the tags considered useful.
+
 The first field contains the tag id number and the second field stores an offset to the name of the tag.
 
 # <a name="instruction-set"></a> Instruction Set
@@ -399,7 +398,7 @@ The first field contains the tag id number and the second field stores an offset
 <a name="pawn-inline-assembly"></a> Most of the AMX assembly instructions as accepted by the Pawn compiler can be expressed in the following format:
 
 ```
-mnemonic[.prefix][.register] operand
+mnemonic[.prefix][.register suffix] operand
 
 SHL.C.pri 3
 ZERO.alt
@@ -407,8 +406,7 @@ ADD.C 100
 LIDX
 ```
 
-The mnemonic gives an idea of what the instruction does, the optional prefix indicates the type of operand the instruction takes and the optional suffix
-tells which register the instruction mainly works on.
+The mnemonic gives an idea of what the instruction does, the optional prefix indicates the type of operand the instruction takes and the optional suffix indicates which register the instruction mainly works on.
 
 **List of prefixes**:
  * .C = constant
@@ -416,14 +414,13 @@ tells which register the instruction mainly works on.
  * .I = indirection
  * .B = variant of the one without B<sup>[needs better description]</sup>
  * .ADR = address
+ * .R = repeat
  
-**List of suffixes**:
+**List of register suffixes**:
  * .pri = primary register
  * .alt = alternate register
  
-Every instruction in its binary form requires a cell to store the opcode and an additional cell for every operand.
-A vast majority of instructions have implied registers as operands. 
-This reduces the number of explicit operands needed which in turn decreases the size of the code segment and improves the performance.
+Every instruction in its binary form requires a cell to store the opcode and an additional cell for every operand. A vast majority of instructions have implied registers as operands. This reduces the number of explicit operands that are needed which in turn decreases the size of the code segment and improves the performance.
 
 <a name="instruction-table"></a> *Reading the table:*
  1. *[address] refers to the value stored at the location `DAT + address`*
@@ -455,8 +452,8 @@ This reduces the number of explicit operands needed which in turn decreases the 
 | 22     | SREF.S.alt | offset    | [[FRM + offset]] = ALT                       |
 | 23     | STOR.I     |           | [ALT] = PRI (full cell)                      |
 | 24     | STRB.I     | number    | number of bytes at [ALT] = PRI (store 1/2/4 bytes) |
-| 25     | LIDX       |           | PRI = [ ALT + (PRI x cell size) ]            |
-| 26     | LIDX.B     | shift     | PRI = [ ALT + (PRI << shift) ]               |
+| 25     | LIDX       |           | PRI = [ALT + (PRI x cell size)]              |
+| 26     | LIDX.B     | shift     | PRI = [ALT + (PRI << shift)]                 |
 | 27     | IDXADDR    |           | PRI = ALT + (PRI x cell size) (calculate indexed address) |
 | 28     | IDXADDR.B  | shift     | PRI = ALT + (PRI << shift) (calculate indexed address) |
 | 29     | ALIGN.pri  | number    | Little Endian: PRI ^= cell size - number     |
@@ -468,7 +465,7 @@ This reduces the number of explicit operands needed which in turn decreases the 
 | 35     | XCHG       |           | Exchange contents of PRI and ALT             |
 | 36     | PUSH.pri   |           | STK = STK - cell size, [STK] = PRI           |
 | 37     | PUSH.alt   |           | STK = STK - cell size, [STK] = ALT           |
-| 38     | PICK       | offset    | PRI = [STK + offset]                         |
+| 38     | PUSH.R     | number    | repeat (STK = STK - cell size, [STK] = PRI) "number" times |
 | 39     | PUSH.C     | value     | STK = STK - cell size, [STK] = value         |  
 | 40     | PUSH       | address   | STK = STK - cell size, [STK] = [address]     |
 | 41     | PUSH.S     | offset    | STK = STK - cell size, [STK] = [FRM + offset] |
@@ -479,21 +476,21 @@ This reduces the number of explicit operands needed which in turn decreases the 
 | 46     | PROC       | value     | STK = STK - cell size, [STK] = FRM, FRM = STK |
 | 47     | RET        |           | FRM = [STK], STK = STK + cell size, CIP = [STK], STK = STK + cell size |
 | 48     | RETN       |           | FRM = [STK], STK = STK + cell size, CIP = [STK], STK = STK + [STK] + cell size |
-| 49     | CALL       | offset    | STK = STK − cell size, [STK] = CIP, CIP = CIP + offset |
+| 49     | CALL       | offset    | STK = STK − cell size, [STK] = CIP, CIP = offset |
 | 50     | CALL.pri   |           | STK = STK − cell size, [STK] = CIP, CIP = PRI |
-| 51     | JUMP       | offset    | CIP = CIP + offset                            |
-| 53     | JZER       | offset    | if PRI == 0 then CIP = CIP + offset           |
-| 54     | JNZ        | offset    | if PRI != 0 then CIP = CIP + offset           |
-| 55     | JEQ        | offset    | if PRI == ALT then CIP = CIP + offset         |
-| 56     | JNEQ       | offset    | if PRI != ALT then CIP = CIP + offset         |
-| 57     | JLESS      | offset    | if PRI < ALT (unsigned) then CIP = CIP + offset | 
-| 58     | JLEQ       | offset    | if PRI <= ALT (unsigned)  then CIP = CIP + offset |
-| 59     | JGRTR      | offset    | if PRI > ALT (unsigned) then CIP = CIP + offset |
-| 60     | JGEQ       | offset    | if PRI >= ALT (unsigned) then CIP = CIP + offset |
-| 61     | JSLESS     | offset    | if PRI < ALT (signed) then CIP = CIP + offset  |
-| 62     | JSLEQ      | offset    | if PRI <= ALT (signed) then CIP = CIP + offset | 
-| 63     | JSGRTR     | offset    | if PRI > ALT (signed) then CIP = CIP + offset |
-| 64     | JSGEQ      | offset    | if PRI >= ALT (signed) then CIP = CIP + offset |
+| 51     | JUMP       | offset    | CIP = offset                                 |
+| 53     | JZER       | offset    | if PRI == 0 then CIP = offset                |
+| 54     | JNZ        | offset    | if PRI != 0 then CIP = offset                |
+| 55     | JEQ        | offset    | if PRI == ALT then CIP = offset              |
+| 56     | JNEQ       | offset    | if PRI != ALT then CIP = offset              |
+| 57     | JLESS      | offset    | if PRI < ALT (unsigned) then CIP = offset    | 
+| 58     | JLEQ       | offset    | if PRI <= ALT (unsigned)  then CIP = offset  |
+| 59     | JGRTR      | offset    | if PRI > ALT (unsigned) then CIP = offset    |
+| 60     | JGEQ       | offset    | if PRI >= ALT (unsigned) then CIP = offset   |
+| 61     | JSLESS     | offset    | if PRI < ALT (signed) then CIP = offset      |
+| 62     | JSLEQ      | offset    | if PRI <= ALT (signed) then CIP = offset     | 
+| 63     | JSGRTR     | offset    | if PRI > ALT (signed) then CIP = offset      |
+| 64     | JSGEQ      | offset    | if PRI >= ALT (signed) then CIP = offset     |
 | 65     | SHL        |           | PRI = PRI << ALT                             |
 | 66     | SHR        |           | PRI = PRI >> ALT (without sign extension)    |
 | 67     | SSHR       |           | PRI = PRI >> ALT (with sign extension)       |
@@ -522,8 +519,8 @@ This reduces the number of explicit operands needed which in turn decreases the 
 | 90     | ZERO.alt   |           | ALT = 0                                      |
 | 91     | ZERO       | address   | [address] = 0                                |
 | 92     | ZERO.S     | offset    | [FRM + offset] = 0                           |
-| 93     | SIGN.pri   |           | sign extent the byte in PRI to a cell        |
-| 94     | SIGN.alt   |           | sign extent the byte in ALT to a cell        |
+| 93     | SIGN.pri   |           | sign extend the byte in PRI to a cell        |
+| 94     | SIGN.alt   |           | sign extend the byte in ALT to a cell        |
 | 95     | EQ         |           | PRI = PRI == ALT ? 1 : 0                     |
 | 96     | NEQ        |           | PRI = PRI != ALT ? 1 : 0                     |
 | 97     | LESS       |           | PRI = PRI < ALT ? 1 : 0 (unsigned)           |     
@@ -546,27 +543,26 @@ This reduces the number of explicit operands needed which in turn decreases the 
 | 114    | DEC        | address   | [address] = [address] - 1                    |
 | 115    | DEC.S      |           | [FRM + offset] = [FRM + offset] - 1          |
 | 116    | DEC.I      |           | [PRI] = [PRI] - 1                            |
-| 117    | MOVS       | number    | Copy memory from [PRI] to [ALT]. The parameter speciﬁes the number of bytes. The blocks should not overlap. |
-| 118    | CMPS       | number    | Compare memory blocks at [PRI] and [ALT]. The parameter speciﬁes the number of bytes. The blocks should notoverlap. |
-| 119    | FILL       | number    | Fill memory at [ALT] with value in [PRI]. The parameter specifes the number of bytes, which must be a multiple of the cell size. |
-| 120    | HALT       | 0         | Abort execution (exit value in PRI), parameters other than 0 have a special meaning. |
-| 121    | BOUNDS     | value     | Abort execution if PRI > value or if PRI < 0 |
+| 117    | MOVS       | number    | copy 'number' bytes of non-overlapping memory from [PRI] to [ALT] |
+| 118    | CMPS       | number    | compare 'number' bytes of non-overlapping memory at [PRI] with [ALT] |
+| 119    | FILL       | number    | fill 'number' bytes of memory from [ALT] with [PRI] (number must be multiple of cell size) |
+| 120    | HALT       | 0         | abort execution (exit value in PRI) |
+| 121    | BOUNDS     | value     | abort execution if PRI > value or if PRI < 0 |
 | 122    | SYSREQ.pri |           | call system service, service number in PRI   |
 | 123    | SYSREQ.C   | address   | call system service                          |
 | 128    | JUMP.pri   |           | CIP = PRI
-| 129    | SWITCH     | offset    | Compare PRI to the values in the case table (whose address is passed as an offset from CIP) and jump to the associated the address in the matching record. |
-| 130    | CASETBL    | ...       | A variable number of case records follows this opcode, where each record takes two cells. |
+| 129    | SWITCH     | offset    | compare PRI to the values in the case table (whose address is passed as an offset from CIP) and jump to the associated the address in the matching record |
+| 130    | CASETBL    | ...       | a variable number of case records follows this opcode, where each record takes two cells |
 | 131    | SWAP.pri   |           | [STK] = PRI and PRI = [STK]                  |
 | 132    | SWAP.alt   |           | [STK] = ALT and ALT = [STK]                  |
 | 133    | PUSH.ADR   | offset    | STK = STK - cell size, [STK] = FRM + offset  |
-| 134    | NOP        |           | no operation; used for code alignment        |
+| 134    | NOP        |           | no operation                                 |
 
 ### <a name="loadstore-instructions"></a> Load/store instructions:
 
-When a global variable is used as an operand, the Pawn compiler substitutes the correct address of the variable.
+When a global variable is used as an operand, the compiler substitutes the address of the variable in its place.
 The first load instruction in the code below effectively becomes `#emit LOAD.pri 1288` if the address of `some_global` was 1288 bytes.
-Note that the address substituted by the compiler is actually the offset from the start of the data segment; hence, the address is relative to the 
-DAT register.
+Note that the address substituted by the compiler is actually the offset from the start of the data segment; hence, the address is relative to the DAT register.
 
 ```pawn
 new some_global = 10, another_global = 25;
@@ -578,7 +574,7 @@ main()
 }
 ```
 
-When a local variable is used as an operand, the Pawn compiler substitutes the correct offset from the start of the function frame. *(explained later)*
+When a local variable is used as an operand, the compiler substitutes the offset from the start of the function frame. *(explained later)*
 
 ```pawn
 main()
@@ -593,7 +589,7 @@ main()
 }
 ```
 
-Given that the compiler substitutes the correct offsets for global variables, `CONST.pri/CONST.alt` can be used to obtain the address of those variables.
+Given that the compiler substitutes the address for global variables, `CONST.pri/CONST.alt` can be used to obtain the address of those variables.
 
 ```pawn
 new some_global;
@@ -682,9 +678,7 @@ main ()
 
 ### <a name="stack-manipulation-instructions"></a> Stack manipulation instructions:
 
-The local variables are stored in the stack. If a local variable is used as an operand, the compiler substitutes the offset of the local variable
-from the start of the current function frame in the stack. A detailed explanation will be provided in a later section but for now, we assume that
-using `CONST.pri some_local` gives some offset which when added to the base address stored in FRM register gives the actual address.
+The local variables are stored in the stack. If a local variable is used as an operand, the compiler substitutes the offset of the local variable from the start of the current function frame in the stack. A detailed explanation will be provided in a later section but for now, we assume that using `CONST.pri some_local` gives some offset which when added to the address stored in FRM register gives the data address.
 
 ```pawn
 main ()
@@ -700,8 +694,6 @@ main ()
     #emit CONST.pri some_local // mysteriously equivalent to CONST.pri -4 (explained later)
 }
 ```
-
-The stack can be used to store temporary data.
 
 ```pawn
 main ()
@@ -731,7 +723,7 @@ main ()
 ```
 
 ### <a name="heap-instructions"></a> Heap instructions:
-The heap pointer (the HEA register) points to the top of the heap. By moving the heap pointer ahead by `x` bytes, we effectively
+The heap pointer (the `HEA` register) points to the top of the heap. By moving the heap pointer ahead by `x` bytes, we effectively
 reserve `x` bytes on the heap.
 
 ```pawn
@@ -742,14 +734,14 @@ main ()
      // ALT = HEA, HEA += 16
    
      #emit CONST.pri 50
-     #emit STOR.I // effectively store the value 50 in the first cell of our reserved area of the heap
+     #emit STOR.I // effectively stores the value 50 in the first cell of our reserved area of the heap
     
-     #emit HEAP -16 // let's return the reserved memory back
+     #emit HEAP -16 // return the reserved memory back
 }
 ```
 
 ### <a name="control-register-manipulation-instructions"></a> Control register manipulation:
-The contents of registers (other than primary and alternate) can be directly read and modified using the `LCTRL` and `SCTRL` instruction respectively.
+The contents of specialized registers can be directly read and modified using the `LCTRL` and `SCTRL` instruction respectively.
 
 | mnemonic | operand | description |
 | -------- | ------- | ----------- |
@@ -770,14 +762,14 @@ main ()
 }
 ```
 
-When a function name is used as an operand, the compiler substitutes it with the address of the function. The address substituted is an 
-offset from the start of the code segment which is essentially an address relative to the COD register.
+When a function name is used as an operand, the compiler substitutes the address of the function in its place. The address substituted is  relative to the COD register.
 
 ```pawn
 f()
 {
     print("f() was called.");
 }
+
 main ()
 {
    #emit PUSH.C 0 // number of bytes taken up by arguments (explained later)
@@ -821,14 +813,12 @@ main()
 
 A switch-case block is implemented using a [case table](https://en.wikipedia.org/wiki/Branch_table). A case table is merely a list of
 tuples consisting of a case number and its corresponding jump address. For a given case value, the AMX searches the case table and jumps
-to the correct jump address. The case table records are arranged in ascending order of the case numbers. This allows the AMX to perform a 
-binary search on the case table but the current version of AMX does not.
+to the corresponding jump address. The case table records are arranged in ascending order of the case numbers. This allows the AMX to perform a binary search on the case table but it may also do a linear search.
 
-The beginning of a switch-case block is marked by the `SWITCH` instruction. It takes an offset relative to the CIP register to the case table (which is also present in the code segment) as an operand.
-The case table formally begins with a `CASETBL` instruction which is followed by a series of `CASE` records each taking two parameters. The first case record has special meaning associated with its two parameters: 
-the first parameter is the number of cases in the case table and the second parameter is the offset relative to the CIP register of the default case. 
-If a default case isn't provided, the second parameter contains the offset relative to the CIP register of the instruction coming after the switch-case block.
-The rest of the `CASE` records contain the case value and its corresponding jump offset relative to the CIP register of its record. 
+The beginning of a switch-case block is marked by the `SWITCH` instruction. It takes an offset to the case table (which is also present in the code segment) as an operand. The case table formally begins with a `CASETBL` opcode (just a marker and is functionally unused in AMX) which is followed by a series of `CASE` records each taking two parameters. The parameters of the first case record have special meanings: 
+the first parameter is the number of cases in the case table and the second parameter is the offset to the default case. If a default case isn't provided, the second parameter contains the offset to the instruction coming after the switch-case block.
+
+The rest of the `CASE` records contain the case value and its corresponding jump address. 
 
 ```pawn
 switch(expression)
@@ -843,8 +833,7 @@ switch(expression)
 
 The compiler adds the instructions to evaluate the given `expression` whose result is stored in the primary register.
 A `SWITCH` instruction immediately follows which causes the AMX to search the case table for the case value matching the
-the value stored in the primary register.
-If a match is found, the execution jumps to the address pointed by the matching record; otherwise, it jumps to the default address.
+the value stored in the primary register. If a match is found, the execution jumps to the address pointed by the matching record; otherwise, it jumps to the default address.
 
 ```assembly
 ; the compiler makes it easier to read assembly output by using labels instead of real offsets/addresses
@@ -895,18 +884,11 @@ f()
 ```
 
 The compiler adds `PUSH.C 0` and `PUSH.C 5` instructions in response to the declarations of `local1` and `local2` respectively.
-All accesses and modifications to the variables will directly access and modify the appropriate cells in the stack. 
-However, using the address of the locals to read or write to local variables is not possible since the address can be known only during run-time;
-for example, think of a local variable of a recursive function.
+All accesses and modifications to the variables will directly access and modify the appropriate cells in the stack. However, using the address of the locals to read or write to local variables is not possible since the address can be known only at run-time; for example, think of a local variable of a recursive function.
 
-The solution is to abandon the use of addresses and instead use offsets from a particular reference position in the stack.
-The reference point used for assigning offsets is the position of the top of the stack just after the function is called.
-This reference point is known as the beginning of the current function's frame.
-The corresponding address of that position is known as the frame address of the current function.
+The solution is to abandon the use of addresses and instead use offsets from a particular reference position in the stack. The top of the stack just after the function is called is set as the reference point for assigning offsets to the locals in the function. Formally, this reference point is the beginning of the current function's frame and its address is known as the frame address of the current function. When a function is called, it saves the previous function's frame address on the stack and sets the `FRM` register to point to the current function's frame.
 
-Just after a function is called, the frame of the function is empty; the top of the stack relative to the frame is zero, i.e: there's nothing.
-Note that as the stack grows downwards, the address of the recently pushed item will be lesser than that of the item preceding it. 
-This implies the offsets of the items that are pushed on to the stack are negative. The offsets of `local1` and `local2` will be `-4` and `-8` respectively.
+Just after a function is called, the frame of the function is empty; the top of the stack relative to the frame is zero, i.e: there's nothing. Room is made for the local variables in the frame as and when they are encountered. Note that as the stack grows downwards; hence, the address of the recently pushed item will be lesser than that of the item preceding it. This implies the offsets of the items that are pushed on to the stack are negative. In the aforementioned example, the offsets of `local1` and `local2` is `-4` and `-8` respectively.
 
 ```pawn
 f()
@@ -928,9 +910,7 @@ f()
 }
 ```
 
-When a local array is declared, a room is made for the array by moving stack pointer down by the number of bytes required to store the array. The array
-is then filled with zeros or with the initializer list provided. In the above snippet, the offset for `local1`, `local2` and `local3` are 
-`-4`, `-404` and `-408` respectively.
+When a local array is declared, a room is made for the array by moving stack pointer down by the number of bytes required to store the array. The array is then filled with zeros or with the initializer list provided. In the above snippet, the offset for `local1`, `local2` and `local3` are `-4`, `-404` and `-408` respectively.
 
 ```pawn
 f()
@@ -961,19 +941,17 @@ f()
 ```
 
 The storage duration of local variables is restricted to the code block in which they were declared. Therefore, the local variables
-must somehow be removed from the stack when they go out of scope. Notice that all the variables that were declared in the scope (and its subscope) 
-will be present one after another in the stack. Therefore, a single `STACK` instruction to move the pointer up by the number of bytes of local symbols that were
-declared in current scope would remove the local symbols from the stack.
+must somehow be removed from the stack when they go out of scope. Notice that all the variables that were declared in the scope (and its subscopes) will be present one after another in the stack. Therefore, a single `STACK` instruction to move the stack pointer up by the number of bytes of local symbols that are to be removed will suffice to clean up the stack.
 
 ### <a name="call-convention"></a> Call convention
 
-The arguments are pushed on to the stack by the caller. Since they are already on the stack when the callee is called (which sets the FRM register),
-the offsets of the arguments relative to the callee's frame are positive. However, they do not start from 0; instead, the first argument is
-at offset 12 and the second is at 16 and so on. The first three cells above the current function's frame contain information about the function call itself.
+The arguments are pushed on to the stack by the caller. Since they are already on the stack when the callee is called (which sets the FRM register), the offsets of the arguments relative to the callee's frame are positive. However, they do not start from 0; instead, the first argument is at offset 12 and the second is at 16 and so on. The first three cells above the current function's frame contain information about the function call itself.
 
-If the call stack is explored after a function call, it will have the following structure:
+The contents of the stack after a function call will have the following structure:
 
 ```
+CONTENTS OF THE STACK:
+
 HIGH ADDRESS
 .                      .                                 <= frame of caller 
 .                      .
@@ -982,8 +960,8 @@ HIGH ADDRESS
 12                     argument 1
 8                      (number of arguments)
 4                      (return address)
-0                      (frame address of the caller)     
--4                     callee local variable 1           <= frame of callee begins from this position
+0                      (frame address of the caller)   
+-4                     callee local variable 1          <= frame of callee begins from this position
 -8                     callee local variable 2
 .                      .
 .                      .
@@ -991,30 +969,23 @@ HIGH ADDRESS
 LOW ADDRESS
 ```
 
-The series of steps taken to make a function call in detail are:
-1. push the arguments (last argument pushed first)
-2. push the number of arguments (in terms of size in bytes)
+**procedure for making a function call:**
+1. push the arguments in reverse order (last argument pushed first)
+2. push the number of arguments (in terms of the total size in bytes)
 3. push the return address
-4. set CIP to point to the beginning of the callee
-5. save the value of the FRM register (caller's frame address) on the stack
-6. set the FRM to STK (callee's frame address)
+4. set `CIP` to point to the beginning of the callee
+5. save the value of the `FRM` register (caller's frame address) on the stack
+6. set the `FRM` to `STK` (callee's frame address)
 7. execute callee
 8. restore the stack to the condition it was just after the function was called (i.e. remove local variables)
-9. store the return value in the primary register
-10. pop the frame address of the caller and set FRM register (without altering the return value in the primary register)
-11. pop the return address and set CIP register (without altering the return value in the primary register)
-12. remove arguments from the stack (without altering the return value in the primary register)
+9. place the return value in the primary register
+10. pop the frame address of the caller and set `FRM` register
+11. pop the return address and set `CIP` register
+12. remove arguments from the stack
 
-Steps 1 and 2 have to be done manually. Note that the arguments are pushed in reverse order, i.e. the last argument is pushed first.
-Steps 3 and 4 are both done together by the `CALL` instruction (and its `CALL.pri` variant).
-Steps 5 and 6 are both carried out together by the `PROC` instruction.
-Step 8 is carried out using the `STACK` instruction.
-Step 10 and 11 are done together by `RET` instruction.
-The `RETN` instruction does steps 10, 11 and 12 together. 
-
-If the `RET` instruction is used, the responsibility of cleaning up the stack is upon the caller.
-The `STACK`, `RET`, `RETN` instructions do not alter the contents of the primary register. 
-Hence, the return value is not affected.
+Steps 1 and 2 have to be done manually. Steps 3 and 4 are both done together by the `CALL` instruction (and its `CALL.pri` variant).
+Steps 5 and 6 are both carried out together by the `PROC` instruction. Step 8 is carried out using the `STACK` instruction.
+Step 10 and 11 are done together by `RET` instruction. The `RETN` instruction can be used to do the steps 10, 11 and 12 together. If the `RET` instruction is used, the caller is responsible for cleaning up the stack. Since the `STACK`, `RET`, `RETN` instructions do not alter the contents of the primary register, the return value is not affected.
 
 ```pawn
 new stk, stp, tmp; // globals are not involved in the stack
@@ -1042,7 +1013,7 @@ f(arg)
     }
     
     // compiler uses whatever information it has and adds instructions to correct the stack before returning
-    // if items have been pushed manually using #emit, the compiler won't be aware of it
+    // if items have been pushed or popped manually using #emit, the compiler won't be aware of it
     return 1234;
 }
 main () {
@@ -1102,21 +1073,21 @@ new global;
 f(&arg1, &arg2)
 {
     #emit CONST.pri 10
-    #emit SREF.S.pri arg // 'arg' has address and the data has to be written to that address => [[FRM + arg]] = PRI
+    #emit SREF.S.pri arg1 // 'arg1' has address of 'x' and the write happens to that address => [[FRM + arg]] = PRI
 }
 main ()
 {
     new x = 150;
     // f(x, global);
     #emit PUSH.C global // push the address of 'global'
-    #emit PUSH.adr x // push address of 'x', i.e: FRM + x
+    #emit PUSH.ADR x // push address of 'x', i.e: FRM + x
     #emit PUSH.C 8
     #emit CALL f  
 }
 ```
 
 **Passing arrays**:
-Arrays are passed as reference, i.e: the address of the array is passed. This avoids the costly array copying but makes modifications to the argument transparent.
+Arrays are passed as reference, i.e: the address of the array is passed. This avoids the cost of making a copy of the array but any modifications made to the argument are transparent.
 
 ```pawn
 f(arr1[], arr2[])
@@ -1157,8 +1128,7 @@ main()
 ```
 
 **Passing variable arguments**:
-The parameters passed as a variable argument are passed by reference. If a constant or an expression which is not an lvalue has to be passed,
-the result must be temporarily stored in the heap and its address must be passed.
+The parameters passed to a variable argument list are passed by reference. If a constant or an expression which is not an lvalue has to be passed, the result must be temporarily stored in the heap and its address must be passed.
 
 ```pawn
 f(arg, ...)
@@ -1197,15 +1167,14 @@ main ()
 
 ### <a name="system-requests"></a> System Requests
 
-The procedure for calling native functions is almost the same as that for any other function except that `SYSREQ.pri/SYSREQ.C` instruction is used in place of `CALL/CALL.pri` and the stack has to be cleaned up by the caller. 
-The compiler creates an entry in the native function table for every native function that is used in the script. The records of the native functional table are assigned an index in order starting with zero for the first record. 
-This index is used as an operand for `SYSREQ.pri/SYSREQ.C` instructions.
+The procedure for calling native functions is almost the same as that for any other function except that `SYSREQ.pri/SYSREQ.C` instruction is used in place of `CALL/CALL.pri` and the stack has to be cleaned up by the caller. The compiler creates an entry in the native function table for every native function that is used in the script. The records of the native function table are assigned an index in order starting with zero for the first record. This index is used as an operand for `SYSREQ.pri/SYSREQ.C` instructions.
 
-If the name of the native function is provided as an operand, the compiler substitutes the correct native function index.
+If the name of the native function is provided as an operand, the compiler substitutes the it corresponding native function index.
 
 ```pawn
-native random(); // returns a random number
-native printf(const frmt[], ...); // prints a formatted string
+native random();
+native printf(const frmt[], ...);
+
 main ()
 {
     static const str[] = "Random number: %d";
@@ -1214,7 +1183,7 @@ main ()
     
     #emit PUSH.C 0 // zero arguments
     #emit SYSREQ.C random
-    #emit STACK 4 // must manually clean the stack (only one item was pushed on to the stack; hence, we move STK by 4)
+    #emit STACK 4 // must manually clean the stack (only one item was pushed on to the stack; hence, we move STK up by 4)
     // random value was returned in the primary register
 
     // prepare to push the random value
@@ -1234,9 +1203,7 @@ main ()
 
 # <a name="multi-dimensional-arrays"></a> Multi-dimensional arrays
 
-Two-dimensional arrays consist of an indirection table in addition to the array data. 
-The indirection table is a one-dimensional array of offsets to the sub-arrays.
-For a two dimensional 4 by 3 array, the structure would look like:
+Two-dimensional arrays consist of an indirection table in addition to the array data. The indirection table is a one-dimensional array of offsets to the sub-arrays. For a two dimensional 4 by 3 array, the structure would look like:
 
 ```
 address of [0] | address of [1] | address of [2] | address of [3]
@@ -1247,9 +1214,7 @@ address of [0] | address of [1] | address of [2] | address of [3]
       ([0][0] [0][1] [0][2])
 ```
 
-The indirection table consists of 4 offsets pointing to their corresponding 3-element sub-array. 
-These offsets are relative to the address of the cell from which they are read, i.e. to obtain
-the address of sub-array [2], the address of element [2] in the indirection table must be added to the value it stores.
+The indirection table consists of 4 offsets pointing to their corresponding 3-element sub-array.  These offsets are relative to the address of the cell from which they are read, i.e. to obtain the address of sub-array [2], the address of element [2] in the indirection table must be added to the value it contains.
 
 ```pawn
 static const arr[][] = { {1, 2, 3}, {1, 2}, {4, 5, 6, 7} };
@@ -1294,8 +1259,8 @@ new arr[5][5];
 #emit LIDX // loads [2][4] in to the primary register
 ```
 
-Every N-dimensional (N != 1) contains an indirection table with offsets pointing to the (N - 1)-dimensional sub-arrays. To access an 
-element, the indirection tables must be recursively traversed until a one-dimensional array is obtained
+Every N-dimensional array (N != 1) contains an indirection table with offsets pointing to the (N - 1)-dimensional sub-arrays. To access an 
+element, the indirection tables must be recursively traversed until a one-dimensional array is obtained.
 
 ```pawn
 new arr[5][5][5];
@@ -1327,3 +1292,5 @@ new arr[5][5][5];
 
 // PRI contains the value stored at arr[3][2][4]
 ```
+
+A multi-dimensional array is passed as an argument to a function by passing the address of its indirection table.
