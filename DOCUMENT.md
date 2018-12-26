@@ -437,7 +437,7 @@ Every instruction in its binary form requires a cell to store the opcode and an 
 | 7      | LREF.S.pri | offset    | PRI = [[FRM + offset]]                       |
 | 8      | LREF.S.alt | offset    | ALT = [[FRM + offset]]                       |
 | 9      | LOAD.I     |           | PRI = [PRI]                                  |
-| 10     | LODB.I     | number    | PRI = "number" of bytes from [PRI] (read 1/2/4 bytes) |
+| 10     | LODB.I     | number    | PRI = 'number' of bytes from [PRI] (read 1/2/4 bytes) |
 | 11     | CONST.pri  | value     | PRI = value                                  |
 | 12     | CONST.alt  | value     | ALT = value                                  |
 | 13     | ADDR.pri   | offset    | PRI = FRM + offset                           |
@@ -465,17 +465,17 @@ Every instruction in its binary form requires a cell to store the opcode and an 
 | 35     | XCHG       |           | Exchange contents of PRI and ALT             |
 | 36     | PUSH.pri   |           | STK = STK - cell size, [STK] = PRI           |
 | 37     | PUSH.alt   |           | STK = STK - cell size, [STK] = ALT           |
-| 38     | PUSH.R     | number    | repeat (STK = STK - cell size, [STK] = PRI) "number" times |
+| 38     | PUSH.R     | number    | repeat (STK = STK - cell size, [STK] = PRI) 'number' times |
 | 39     | PUSH.C     | value     | STK = STK - cell size, [STK] = value         |  
 | 40     | PUSH       | address   | STK = STK - cell size, [STK] = [address]     |
 | 41     | PUSH.S     | offset    | STK = STK - cell size, [STK] = [FRM + offset] |
-| 42     | POP.pri    |           | PRI = [STK] and STK = STK + cell size        |     
-| 43     | POP.alt    |           | ALT = [STK] and STK = STK + cell size        |
-| 44     | STACK      | value     | ALT = STK and STK = STK + value              |
-| 45     | HEAP       | value     | ALT = HEA and HEA = HEA + value              |
-| 46     | PROC       | value     | STK = STK - cell size, [STK] = FRM, FRM = STK |
+| 42     | POP.pri    |           | PRI = [STK], STK = STK + cell size           |
+| 43     | POP.alt    |           | ALT = [STK], STK = STK + cell size           |
+| 44     | STACK      | value     | ALT = STK, STK = STK + value                 |
+| 45     | HEAP       | value     | ALT = HEA, HEA = HEA + value                 |
+| 46     | PROC       |           | STK = STK - cell size, [STK] = FRM, FRM = STK |
 | 47     | RET        |           | FRM = [STK], STK = STK + cell size, CIP = [STK], STK = STK + cell size |
-| 48     | RETN       |           | FRM = [STK], STK = STK + cell size, CIP = [STK], STK = STK + [STK] + cell size |
+| 48     | RETN       |           | FRM = [STK], STK = STK + cell size, CIP = [STK], STK = STK + cell size, STK = STK + [STK] + cell size |
 | 49     | CALL       | offset    | STK = STK − cell size, [STK] = CIP, CIP = offset |
 | 50     | CALL.pri   |           | STK = STK − cell size, [STK] = CIP, CIP = PRI |
 | 51     | JUMP       | offset    | CIP = offset                                 |
@@ -508,7 +508,7 @@ Every instruction in its binary form requires a cell to store the opcode and an 
 | 79     | SUB        |           | PRI = PRI - ALT                              |
 | 80     | SUB.alt    |           | PRI = ALT - PRI                              |
 | 81     | AND        |           | PRI = PRI & ALT                              |
-| 82     | OR         |           | PRI = PRI | ALT                              |
+| 82     | OR         |           | PRI = PRI &#124; ALT                          |
 | 83     | XOR        |           | PRI = PRI ^ ALT                              |
 | 84     | NOT        |           | PRI = !PRI                                   |
 | 85     | NEG        |           | PRI = -PRI                                   |
@@ -523,7 +523,7 @@ Every instruction in its binary form requires a cell to store the opcode and an 
 | 94     | SIGN.alt   |           | sign extend the byte in ALT to a cell        |
 | 95     | EQ         |           | PRI = PRI == ALT ? 1 : 0                     |
 | 96     | NEQ        |           | PRI = PRI != ALT ? 1 : 0                     |
-| 97     | LESS       |           | PRI = PRI < ALT ? 1 : 0 (unsigned)           |     
+| 97     | LESS       |           | PRI = PRI < ALT ? 1 : 0 (unsigned)           |
 | 98     | LEQ        |           | PRI = PRI <= ALT ? 1 : 0 (unsigned)          |
 | 99     | GRTR       |           | PRI = PRI > ALT ? 1 : 0 (unsigned)           |
 | 100    | GEQ        |           | PRI = PRI >= ALT ? 1 : 0 (unsigned)          |
@@ -535,26 +535,26 @@ Every instruction in its binary form requires a cell to store the opcode and an 
 | 106    | EQ.C.alt   | value     | PRI = ALT == value ? 1 : 0                   |
 | 107    | INC.pri    |           | PRI = PRI + 1                                |
 | 108    | INC.alt    |           | ALT = ALT + 1                                |
-| 109    | INC        |           | [address] = [address] + 1                    |
+| 109    | INC        | address   | [address] = [address] + 1                    |
 | 110    | INC.S      | offset    | [FRM + offset] = [FRM + offset] + 1          |
 | 111    | INC.I      |           | [PRI] = [PRI] + 1                            |
 | 112    | DEC.pri    |           | PRI = PRI - 1                                |
 | 113    | DEC.alt    |           | ALT = ALT - 1                                |
 | 114    | DEC        | address   | [address] = [address] - 1                    |
-| 115    | DEC.S      |           | [FRM + offset] = [FRM + offset] - 1          |
+| 115    | DEC.S      | offset    | [FRM + offset] = [FRM + offset] - 1          |
 | 116    | DEC.I      |           | [PRI] = [PRI] - 1                            |
 | 117    | MOVS       | number    | copy 'number' bytes of non-overlapping memory from [PRI] to [ALT] |
 | 118    | CMPS       | number    | compare 'number' bytes of non-overlapping memory at [PRI] with [ALT] |
-| 119    | FILL       | number    | fill 'number' bytes of memory from [ALT] with [PRI] (number must be multiple of cell size) |
-| 120    | HALT       | 0         | abort execution (exit value in PRI) |
+| 119    | FILL       | number    | fill 'number' bytes of memory from [ALT] with value in PRI (number must be multiple of cell size) |
+| 120    | HALT       | 0         | abort execution (exit value in PRI)          |
 | 121    | BOUNDS     | value     | abort execution if PRI > value or if PRI < 0 |
 | 122    | SYSREQ.pri |           | call system service, service number in PRI   |
-| 123    | SYSREQ.C   | address   | call system service                          |
+| 123    | SYSREQ.C   | value     | call system service                          |
 | 128    | JUMP.pri   |           | CIP = PRI
-| 129    | SWITCH     | offset    | compare PRI to the values in the case table (whose address is passed as an offset from CIP) and jump to the associated the address in the matching record |
+| 129    | SWITCH     | offset    | compare PRI to the values in the case table (whose address is passed in the 'offset' argument) and jump to the associated address in the matching record |
 | 130    | CASETBL    | ...       | a variable number of case records follows this opcode, where each record takes two cells |
-| 131    | SWAP.pri   |           | [STK] = PRI and PRI = [STK]                  |
-| 132    | SWAP.alt   |           | [STK] = ALT and ALT = [STK]                  |
+| 131    | SWAP.pri   |           | [STK] = PRI, PRI = [STK]                     |
+| 132    | SWAP.alt   |           | [STK] = ALT, ALT = [STK]                     |
 | 133    | PUSH.ADR   | offset    | STK = STK - cell size, [STK] = FRM + offset  |
 | 134    | NOP        |           | no operation                                 |
 
