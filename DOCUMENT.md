@@ -487,7 +487,7 @@ Every instruction in its binary form requires a cell to store the opcode and an 
 | 98     | LEQ        |           | PRI = PRI <= ALT ? 1 : 0 (unsigned)                                                                   |
 | 99     | GRTR       |           | PRI = PRI > ALT ? 1 : 0 (unsigned)                                                                    |
 | 100    | GEQ        |           | PRI = PRI >= ALT ? 1 : 0 (unsigned)                                                                   |
-| 101    | SLESS      |           | PRI < ALT ? 1 : 0 (signed)                                                                            |
+| 101    | SLESS      |           | PRI = PRI < ALT ? 1 : 0 (signed)                                                                      |
 | 102    | SLEQ       |           | PRI = PRI <= ALT ? 1 : 0 (signed)                                                                     |
 | 103    | SGRTR      |           | PRI = PRI > ALT ? 1 : 0 (signed)                                                                      |
 | 104    | SGEQ       |           | PRI = PRI >= ALT ? 1 : 0 (signed)                                                                     |
